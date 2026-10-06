@@ -1,4 +1,3 @@
-import React from 'react';
 import TeacherCard from './TeacherCard';
 import VideoBox from './VideoBox';
 
@@ -24,7 +23,6 @@ export default function Hero({ onPlayClick, onStartLearning }) {
           >
             დაიწყე სწავლა
           </button>
-          <a href="#about" className="btn-secondary">კურსის შესახებ</a>
         </div>
       </div>
       

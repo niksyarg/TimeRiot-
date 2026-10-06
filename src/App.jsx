@@ -7,11 +7,11 @@ function App() {
   const [currentView, setCurrentView] = useState('home'); 
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
+  const [showCourseModal, setShowCourseModal] = useState(false); // პოაპის სტეიტი
 
   useEffect(() => {
     const storedUser = localStorage.getItem('riot_current_user');
     const storedRole = localStorage.getItem('riot_role');
-    console.log("App mount - Loaded user from storage:", storedUser);
     if (storedUser) {
       setUser(storedUser);
       setRole(storedRole);
@@ -19,7 +19,6 @@ function App() {
   }, []);
 
   const handleLogin = (username, userRole) => {
-    console.log("App handleLogin called with:", username, userRole);
     localStorage.setItem('riot_current_user', username);
     localStorage.setItem('riot_role', userRole);
     setUser(username);
@@ -27,8 +26,6 @@ function App() {
   };
 
   const handleLogout = () => {
-    console.log("App handleLogout called");
-    // სრულად ვასუფთავებთ მხოლოდ სასწავლო/იუზერის ქეშს, რომ პარამეტრები არ აირიოს
     localStorage.removeItem('riot_current_user');
     localStorage.removeItem('riot_role');
     setUser(null);
@@ -50,6 +47,14 @@ function App() {
                 style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontFamily: 'Fira GO', fontSize: '16px' }}
               >
                 მთავარი
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => setShowCourseModal(true)} 
+                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontFamily: 'Fira GO', fontSize: '16px' }}
+              >
+                კურსის შესახებ
               </button>
             </li>
             <li>
@@ -98,6 +103,60 @@ function App() {
           onLogin={handleLogin} 
           onLogout={handleLogout} 
         />
+      )}
+
+      {/* კურსის შესახებ პოაპი (Modal) */}
+      {showCourseModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#1e1e24',
+            padding: '35px',
+            borderRadius: '14px',
+            maxWidth: '550px',
+            width: '100%',
+            border: '1px solid #ff4d4d',
+            color: 'white',
+            fontFamily: 'Fira GO',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            position: 'relative'
+          }}>
+            <h2 style={{ color: '#ff4d4d', marginBottom: '20px', fontSize: '24px' }}>📚 TimeRiot - კურსის შესახებ</h2>
+            <p style={{ color: '#ccc', lineHeight: '1.7', marginBottom: '20px', fontSize: '15px' }}>
+              <strong>TimeRiot</strong> არის თანამედროვე საგანმანათლებლო ჰაბი, რომელიც შექმნილია იმისათვის, რომ საქართველოსა და მსოფლიო ისტორიის შესწავლა გახდეს მარტივი, სახალისო და შედეგიანი. 
+            </p>
+            <p style={{ color: '#ccc', lineHeight: '1.7', marginBottom: '25px', fontSize: '15px' }}>
+              კურსი სრულად ფარავს აბიტურიენტებისთვის საჭირო პროგრამას, გთავაზობს ვიდეო ლექციებს, თემატურ ქვიზებს და პროგრესის მკაცრ კონტროლს თითოეული ეტაპის წარმატებით გავლისთვის.
+            </p>
+            <button 
+              onClick={() => setShowCourseModal(false)}
+              style={{ 
+                background: '#ff4d4d', 
+                color: 'white', 
+                border: 'none', 
+                padding: '12px 25px', 
+                borderRadius: '6px', 
+                cursor: 'pointer', 
+                fontWeight: 'bold',
+                fontFamily: 'Fira GO',
+                width: '100%'
+              }}
+            >
+              გასაგებია / დახურვა
+            </button>
+          </div>
+        </div>
       )}
 
       <footer id="contact">
