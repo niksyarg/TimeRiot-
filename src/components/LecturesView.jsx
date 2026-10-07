@@ -65,17 +65,14 @@ export default function LecturesView({ user, role, onLogin, onLogout }) {
     return saved ? JSON.parse(saved) : initialLectures;
   });
 
-  // ვიღებთ აქტიურ იუზერს უსაფრთხოდ - თუ პროპად არ შემოდის, ვეძებთ localStorage-ში
   const activeUser = user || localStorage.getItem('riot_current_user');
 
-  // სწორი და უსაფრთხო პროგრესის ჩატვირთვა იუზერის მიხედვით
   const [completedLectures, setCompletedLectures] = useState(() => {
     if (!activeUser) return [];
     const savedCompleted = localStorage.getItem(`riot_completed_${activeUser}`);
     return savedCompleted ? JSON.parse(savedCompleted) : [];
   });
 
-  // როცა აქტიური იუზერი იცვლება ან თავიდან შედის, ავტომატურად ვქაჩავთ მის შენახულ პროგრესს
   useEffect(() => {
     if (activeUser) {
       const savedCompleted = localStorage.getItem(`riot_completed_${activeUser}`);
@@ -110,6 +107,11 @@ export default function LecturesView({ user, role, onLogin, onLogout }) {
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
 
+  // ახალი სტეიტები Search-ისა და Pagination-ისთვის
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const lecturesPerPage = 15;
+
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newVideoUrl, setNewVideoUrl] = useState('');
@@ -124,9 +126,27 @@ export default function LecturesView({ user, role, onLogin, onLogout }) {
     localStorage.setItem('riot_lectures', JSON.stringify(lectures));
   }, [lectures]);
 
-  const handleLectureSelect = (lec, index) => {
-    if (index > 0 && role !== 'admin') {
-      const prevLectureId = lectures[index - 1].id;
+  // ძებნისა და ფილტრაციის ლოგიკა
+  const filteredLectures = lectures.filter(lec => 
+    lec.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (lec.description && lec.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  // გვერდებად დაყოფის გამოთვლები
+  const totalPages = Math.ceil(filteredLectures.length / lecturesPerPage) || 1;
+  const indexOfLastLecture = currentPage * lecturesPerPage;
+  const indexOfFirstLecture = indexOfLastLecture - lecturesPerPage;
+  const currentLectures = filteredLectures.slice(indexOfFirstLecture, indexOfLastLecture);
+
+  // როცა იუზერი ძებნისას რამეს ჩაწერს, ავტომატურად ვუბრუნებთ 1-ლი გვერდიდან
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleLectureSelect = (lec, originalIndex) => {
+    if (originalIndex > 0 && role !== 'admin') {
+      const prevLectureId = lectures[originalIndex - 1].id;
       if (!completedLectures.includes(prevLectureId)) {
         alert("⚠️ ეს ლექცია ჩაკეტილია! ჯერ ბოლომდე უნდა შეისწავლო და უშეცდომოდ ჩააბარო წინა ლექციის ქვიზი.");
         return;
@@ -154,7 +174,6 @@ export default function LecturesView({ user, role, onLogin, onLogout }) {
       return;
     }
 
-    // ვინახავთ აქტიურ იუზერს გლობალურად localStorage-ში, რომ არ დაიკარგოს
     localStorage.setItem('riot_current_user', trimmedUser);
 
     if (trimmedUser === "Nika" && trimmedPass === "riot123") {
@@ -327,70 +346,142 @@ export default function LecturesView({ user, role, onLogin, onLogout }) {
 
           {!selectedLecture ? (
             <div>
-              <h2 style={{ marginBottom: '25px', borderBottom: '2px solid #ff4d4d', paddingBottom: '10px' }}>📚 სასწავლო პროგრამა (ლექციები)</h2>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-                {lectures.map((lec, index) => {
-                  const isCompleted = completedLectures.includes(lec.id);
-                  const isLocked = index > 0 && role !== 'admin' && !completedLectures.includes(lectures[index - 1].id);
-
-                  let cardBg = '#1a1a22';
-                  let borderColor = '#333';
-
-                  if (isCompleted) {
-                    cardBg = '#14281a'; 
-                    borderColor = '#28a745';
-                  } else if (isLocked) {
-                    cardBg = '#16161a';
-                    borderColor = '#222';
-                  }
-
-                  return (
-                    <div 
-                      key={lec.id} 
-                      style={{ 
-                        background: cardBg, 
-                        padding: '25px', 
-                        borderRadius: '12px', 
-                        cursor: isLocked ? 'not-allowed' : 'pointer', 
-                        border: `1px solid ${borderColor}`, 
-                        transition: '0.3s', 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        justifyContent: 'space-between',
-                        opacity: isLocked ? 0.6 : 1
-                      }} 
-                      onClick={() => handleLectureSelect(lec, index)}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span style={{ color: isCompleted ? '#28a745' : '#ff4d4d', fontSize: '14px', fontWeight: 'bold' }}>
-                            ლექცია №{index + 1} {isCompleted ? '✓ დასრულებულია' : ''} {isLocked ? '🔒 ჩაკეტილია' : ''}
-                          </span>
-                        </div>
-                        
-                        <h3 style={{ fontSize: '18px', margin: '10px 0 15px 0', color: 'white' }}>{lec.title}</h3>
-                        
-                        {lec.description && (
-                          <p style={{ color: '#aaa', fontSize: '14px', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {lec.description}
-                          </p>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' }}>
-                        <span style={{ color: isLocked ? '#666' : (isCompleted ? '#28a745' : '#ff4d4d'), fontWeight: 'bold', fontSize: '14px' }}>
-                          {isLocked ? 'საჭიროებს წინა ლექციას 🔒' : (isCompleted ? 'თავიდან ნახვა 🔄' : 'ჩართვა ▶')}
-                        </span>
-                        
-                        {role === 'admin' && (
-                          <button onClick={(e) => { e.stopPropagation(); handleDeleteLecture(lec.id); }} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', padding: '0 5px' }}>✕</button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '2px solid #ff4d4d', paddingBottom: '10px', flexWrap: 'wrap', gap: '15px' }}>
+                <h2 style={{ margin: 0 }}>📚 სასწავლო პროგრამა (ლექციები)</h2>
+                
+                {/* საძიებო ველი (Search Bar) */}
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder="🔍 მოძებნე ლექცია სათაურით..."
+                  style={{
+                    background: '#1a1a22',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    padding: '10px 15px',
+                    color: 'white',
+                    width: '280px',
+                    fontFamily: 'Fira GO',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
               </div>
+              
+              {currentLectures.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', background: '#1a1a22', borderRadius: '12px', border: '1px solid #333' }}>
+                  <p style={{ fontSize: '18px' }}>ლექცია ვერ მოიძებნა 😕</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                  {currentLectures.map((lec) => {
+                    // ვპოულობთ რეალურ ინდექსს მთავარ მასივში, რომ სწორად შევამოწმოთ ჩაკეტვა/გახსნა
+                    const originalIndex = lectures.findIndex(l => l.id === lec.id);
+                    const isCompleted = completedLectures.includes(lec.id);
+                    const isLocked = originalIndex > 0 && role !== 'admin' && !completedLectures.includes(lectures[originalIndex - 1].id);
+
+                    let cardBg = '#1a1a22';
+                    let borderColor = '#333';
+
+                    if (isCompleted) {
+                      cardBg = '#14281a'; 
+                      borderColor = '#28a745';
+                    } else if (isLocked) {
+                      cardBg = '#16161a';
+                      borderColor = '#222';
+                    }
+
+                    return (
+                      <div 
+                        key={lec.id} 
+                        style={{ 
+                          background: cardBg, 
+                          padding: '25px', 
+                          borderRadius: '12px', 
+                          cursor: isLocked ? 'not-allowed' : 'pointer', 
+                          border: `1px solid ${borderColor}`, 
+                          transition: '0.3s', 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          justifyContent: 'space-between',
+                          opacity: isLocked ? 0.6 : 1
+                        }} 
+                        onClick={() => handleLectureSelect(lec, originalIndex)}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ color: isCompleted ? '#28a745' : '#ff4d4d', fontSize: '14px', fontWeight: 'bold' }}>
+                              ლექცია №{originalIndex + 1} {isCompleted ? '✓ დასრულებულია' : ''} {isLocked ? '🔒 ჩაკეტილია' : ''}
+                            </span>
+                          </div>
+                          
+                          <h3 style={{ fontSize: '18px', margin: '10px 0 15px 0', color: 'white' }}>{lec.title}</h3>
+                          
+                          {lec.description && (
+                            <p style={{ color: '#aaa', fontSize: '14px', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {lec.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' }}>
+                          <span style={{ color: isLocked ? '#666' : (isCompleted ? '#28a745' : '#ff4d4d'), fontWeight: 'bold', fontSize: '14px' }}>
+                            {isLocked ? 'საჭიროებს წინა ლექციას 🔒' : (isCompleted ? 'თავიდან ნახვა 🔄' : 'ჩართვა ▶')}
+                          </span>
+                          
+                          {role === 'admin' && (
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteLecture(lec.id); }} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', padding: '0 5px' }}>✕</button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* გვერდებად დაყოფა (Pagination) */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginTop: '35px' }}>
+                  <button 
+                    onClick={() => { setCurrentPage(prev => Math.max(prev - 1, 1)); window.scrollTo(0, 0); }}
+                    disabled={currentPage === 1}
+                    style={{
+                      background: currentPage === 1 ? '#15151a' : '#1e1e24',
+                      color: currentPage === 1 ? '#555' : 'white',
+                      border: '1px solid #333',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      fontFamily: 'Fira GO',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    ← წინა
+                  </button>
+
+                  <span style={{ color: '#aaa', fontSize: '14px', padding: '0 10px' }}>
+                    გვერდი <strong style={{ color: '#ff4d4d' }}>{currentPage}</strong> / {totalPages}
+                  </span>
+
+                  <button 
+                    onClick={() => { setCurrentPage(prev => Math.min(prev + 1, totalPages)); window.scrollTo(0, 0); }}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      background: currentPage === totalPages ? '#15151a' : '#1e1e24',
+                      color: currentPage === totalPages ? '#555' : 'white',
+                      border: '1px solid #333',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      fontFamily: 'Fira GO',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    შემდეგი →
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div>
