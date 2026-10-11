@@ -7,7 +7,8 @@ function App() {
   const [currentView, setCurrentView] = useState('home'); 
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
-  const [showCourseModal, setShowCourseModal] = useState(false); // პოაპის სტეიტი
+  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('riot_current_user');
@@ -35,45 +36,76 @@ function App() {
 
   return (
     <div>
-      <header>
-        <div className="logo" onClick={() => setCurrentView('home')} style={{ cursor: 'pointer' }}>
-          Time<span>Riot</span>
+      {/* სტილები: ჰამბურგერი ჩართულია ყველგან (დესკტოპზეც და მობილურზეც) */}
+      <style>{`
+        .desktop-nav { display: none !important; }
+        .mobile-hamburger-btn {
+          display: flex !important;
+          flex-direction: column;
+          justify-content: space-between;
+          width: 30px;
+          height: 22px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          z-index: 1000;
+        }
+        .mobile-hamburger-btn span {
+          width: 100%;
+          height: 3px;
+          background-color: white;
+          border-radius: 2px;
+          transition: 0.3s;
+        }
+        .mobile-dropdown-menu.open {
+          display: flex !important;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          width: 100%;
+          background-color: rgba(0, 0, 0, 0.95);
+          backdrop-filter: blur(10px);
+          flex-direction: column;
+          align-items: center;
+          padding: 25px 0;
+          gap: 20px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+          border-bottom: 2px solid #ff4d4d;
+          z-index: 999;
+        }
+      `}</style>
+
+      <header style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', background: '#000', color: '#fff' }}>
+        <div className="logo" onClick={() => setCurrentView('home')} style={{ cursor: 'pointer', fontSize: '24px', fontWeight: 'bold' }}>
+          Time<span style={{ color: '#ff4d4d' }}>Riot</span>
         </div>
-        <nav>
-          <ul>
-            <li>
-              <button 
-                onClick={() => setCurrentView('home')} 
-                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontFamily: 'Fira GO', fontSize: '16px' }}
-              >
-                მთავარი
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => setShowCourseModal(true)} 
-                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontFamily: 'Fira GO', fontSize: '16px' }}
-              >
-                კურსის შესახებ
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => setCurrentView('lectures')} 
-                className="btn-primary" 
-                style={{ border: 'none', padding: '8px 15px', cursor: 'pointer', fontFamily: 'Fira GO' }}
-              >
-                ლექციები
-              </button>
-            </li>
-            <li>
-              <a href="#masterclass" onClick={() => setCurrentView('home')}>მასტერკლასი</a>
-            </li>
-            <li>
-              <a href="#contact">კონტაქტი</a>
-            </li>
-          </ul>
-        </nav>
+
+        {/* ჰამბურგერ ღილაკი (ჩანს ყველგან: კომპიუტერზეც და ტელეფონზეც) */}
+        <button 
+          className="mobile-hamburger-btn"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="მენიუ"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        {/* ჩამოსაშლელი სია, რომელიც იხსნება ჰამბურგერზე დაჭერისას */}
+        <div className={`mobile-dropdown-menu ${isMenuOpen ? 'open' : ''}`} style={{ display: 'none' }}>
+          <button onClick={() => { setCurrentView('home'); setIsMenuOpen(false); }} style={{ background: 'none', border: 'none', color: 'white', fontSize: '18px', cursor: 'pointer', fontFamily: 'Fira GO' }}>
+            მთავარი
+          </button>
+          <button onClick={() => { setShowCourseModal(true); setIsMenuOpen(false); }} style={{ background: 'none', border: 'none', color: 'white', fontSize: '18px', cursor: 'pointer', fontFamily: 'Fira GO' }}>
+            კურსის შესახებ
+          </button>
+          <button onClick={() => { setCurrentView('lectures'); setIsMenuOpen(false); }} style={{ background: '#ff4d4d', border: 'none', color: 'white', fontSize: '16px', padding: '10px 25px', cursor: 'pointer', fontFamily: 'Fira GO', borderRadius: '20px' }}>
+            ლექციები
+          </button>
+          <a href="#masterclass" onClick={() => { setCurrentView('home'); setIsMenuOpen(false); }} style={{ color: 'white', textDecoration: 'none', fontSize: '18px', fontFamily: 'Fira GO' }}>მასტერკლასი</a>
+          <a href="#contact" onClick={() => setIsMenuOpen(false)} style={{ color: 'white', textDecoration: 'none', fontSize: '18px', fontFamily: 'Fira GO' }}>კონტაქტი</a>
+        </div>
       </header>
       
       {currentView === 'home' ? (
@@ -86,15 +118,28 @@ function App() {
           <TodayInHistory />
 
           <section className="materials" id="masterclass">
-            <div className="lesson-grid" style={{ justifyContent: 'center', display: 'flex' }}>
-              <div className="card masterclass-card" style={{ maxWidth: '500px', width: '100%' }}>
-                <div className="card-badge">LIVE</div>
-                <h3>უფასო მასტერკლასი</h3>
-                <p>დარეგისტრირდი და გაიგე, როგორ ჩააბარო ისტორია უმაღლეს ქულაზე.</p>
-                <a href="https://docs.google.com/forms/d/e/1FAIpQLSfHENJtzGcRiiKEJBMvTzNbbv3ch5yu-q1nfrFXnd-D49zFIQ/viewform?usp=header" target="_blank" rel="noopener noreferrer" className="btn-card" style={{ textDecoration: 'none' }}>რეგისტრაცია</a>
-              </div>
-            </div>
-          </section>
+  <div className="lesson-grid" style={{ justifyContent: 'center', display: 'flex', padding: '20px 0' }}>
+    <div className="card masterclass-card" style={{ maxWidth: '500px', width: '100%', padding: '30px', boxSizing: 'border-box' }}>
+      <div className="card-badge">LIVE</div>
+      <h3 style={{ marginBottom: '15px' }}>უფასო მასტერკლასი</h3>
+      <p style={{ marginBottom: '25px', lineHeight: '1.6' }}>დარეგისტრირდი და გაიგე, როგორ ჩააბარო ისტორია უმაღლეს ქულაზე.</p>
+      <a 
+        href="https://docs.google.com/forms/d/e/1FAIpQLSfHENJtzGcRiiKEJBMvTzNbbv3ch5yu-q1nfrFXnd-D49zFIQ/viewform?usp=header" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="btn-card" 
+        style={{ 
+          textDecoration: 'none', 
+          display: 'inline-block', 
+          marginTop: '15px', 
+          padding: '10px 20px' 
+        }}
+      >
+        რეგისტრაცია
+      </a>
+    </div>
+  </div>
+</section>
         </main>
       ) : (
         <LecturesView 
